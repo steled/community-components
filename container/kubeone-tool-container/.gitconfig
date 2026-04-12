@@ -2,6 +2,8 @@
         editor = vim
         autocrlf = input
         excludesfile = ~/.gitignore
+        preloadindex = true
+        untrackedCache = true
 [alias]
         co = checkout
         ci = commit
