@@ -2,7 +2,7 @@ SHELL := bash
 TF_DIR := 00-terraform/aws
 K1_DIR := 10-kubeone
 KKP_DIR := 20-kkp
-KKP_VERSION ?= v2.30.3
+KKP_VERSION ?= v2.30.4
 KKP_RELEASE = kubermatic-ce-$(KKP_VERSION)-linux-amd64
 DNS_ZONE ?= lab.kubermatic.io
 ROUTE53_ZONEID ?= /hostedzone/Z08267412VFVFOL4NEM4P
@@ -16,6 +16,9 @@ DOMAIN = $(CLUSTER_NAME).$(DNS_ZONE)
 default: help
 
 terraform-apply: ## Create/update the AWS infrastructure.
+	@if [ ! -f "$(TF_DIR)/.terraform.lock.hcl" ]; then \
+		(set -x; terraform -chdir="$(TF_DIR)" init); \
+	fi
 	./scripts/with-aws-login.sh terraform -chdir="$(TF_DIR)" apply
 
 terraform-output:
@@ -243,6 +246,7 @@ kkp-kubermatic.yaml: kkp-values.yaml
 	export SERVICE_ACCOUNT_KEY="`cat /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c32`"; \
 	RULES='.spec.auth.issuerCookieKey=strenv(ISSUER_COOKIE_KEY) | .spec.auth.serviceAccountKey=strenv(SERVICE_ACCOUNT_KEY)'; \
 	RULES="$$RULES"' | .spec.featureGates.UserClusterMLA=true'; \
+	RULES="$$RULES"' | .spec.exposeStrategy="LoadBalancer"'; \
 	yq eval "$$RULES" "$(KKP_DIR)/release/$(KKP_RELEASE)/examples/kubermatic.example.yaml" > $(KKP_DIR)/kubermatic.yaml)
 
 	@echo Updating domain and issuer client secret within $(KKP_DIR)/kubermatic.yaml; \
